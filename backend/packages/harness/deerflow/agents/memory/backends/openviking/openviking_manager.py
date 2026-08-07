@@ -80,7 +80,7 @@ class OpenVikingMemoryManager(MemoryManager):
             limit=self._config.search_top_k,
             score_threshold=self._config.score_threshold,
             context_types=("memory",),
-            content_mode=self._config.content_mode,
+            content_mode=self._config.injection_content_mode,
             max_content_chars=self._config.max_injection_chars,
         )
         self._use_actor_peer = integration["use_actor_peer"]
@@ -166,6 +166,7 @@ class OpenVikingMemoryManager(MemoryManager):
             peer_id = self._resolve_scope(user_id, agent_name)
             retriever = copy.copy(self._retriever)
             retriever.target_uri = _memory_target_uris(peer_id)
+            retriever.content_mode = self._config.injection_content_mode
             if thread_id:
                 retriever.search_mode = "search"
                 retriever.session_id = _session_id(
@@ -223,6 +224,7 @@ class OpenVikingMemoryManager(MemoryManager):
             retriever.search_mode = "find"
             retriever.session_id = None
             retriever.limit = max(1, min(int(top_k), 100))
+            retriever.content_mode = self._config.search_content_mode
             if category:
                 retriever.filter = {
                     "op": "must",

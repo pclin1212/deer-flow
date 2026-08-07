@@ -118,6 +118,7 @@ class _Retriever:
         self.filter = None
         self.session_id = kwargs.get("session_id")
         self.target_uri = kwargs.get("target_uri", "")
+        self.content_mode = kwargs.get("content_mode", "auto")
         self.calls: list[dict[str, Any]] = []
 
     def __copy__(self) -> _Retriever:
@@ -127,6 +128,7 @@ class _Retriever:
         copied.filter = copy.deepcopy(self.filter)
         copied.session_id = self.session_id
         copied.target_uri = copy.deepcopy(self.target_uri)
+        copied.content_mode = self.content_mode
         return copied
 
     def invoke(self, query: str) -> list[Document]:
@@ -139,6 +141,7 @@ class _Retriever:
                 "session_id": self.session_id,
                 "target_uri": copy.deepcopy(self.target_uri),
                 "search_mode": getattr(self, "search_mode", "find"),
+                "content_mode": self.content_mode,
             }
         )
         return [
@@ -222,7 +225,8 @@ def test_config_uses_single_user_key_and_rejects_legacy_trusted_fields(
     config = OpenVikingConfig.from_backend_config(_backend_config(tmp_path))
 
     assert config.owner_user_id == "alice"
-    assert config.content_mode == "overview"
+    assert config.injection_content_mode == "auto"
+    assert config.search_content_mode == "read"
     assert config.injection_query == "profile preferences and prior decisions"
     assert "secret" not in repr(config)
 
@@ -261,7 +265,7 @@ def test_manager_uses_official_recorder_retriever_and_commit_always(
 
     assert manager._recorder.commit_policy.mode == "always"
     assert manager._retriever.client is manager._recorder.client
-    assert manager._retriever.kwargs["content_mode"] == "overview"
+    assert manager._retriever.kwargs["content_mode"] == "auto"
     assert manager._recorder.connection == {
         "url": "http://openviking:1933",
         "api_key": "user-key",
@@ -296,8 +300,57 @@ def test_context_preserves_existing_fixed_query_behavior(
                 "viking://user/peers/research/memories",
             ],
             "search_mode": "search",
+            "content_mode": "auto",
         }
     ]
+
+
+def test_legacy_content_mode_applies_to_injection_and_search(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    official_integration: None,
+) -> None:
+    manager = _manager(
+        tmp_path,
+        monkeypatch,
+        retrieval={
+            "top_k": 4,
+            "max_injection_chars": 1_000,
+            "injection_query": "profile preferences and prior decisions",
+            "content_mode": "overview",
+        },
+    )
+
+    manager.get_context("alice", agent_name="research")
+    manager.search("answer style", user_id="alice", agent_name="research")
+
+    assert manager._retriever.kwargs["content_mode"] == "overview"
+    assert manager._retriever.calls[0]["content_mode"] == "overview"
+    assert manager._retriever.calls[1]["content_mode"] == "overview"
+
+
+def test_content_modes_can_be_tuned_for_injection_and_explicit_search(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    official_integration: None,
+) -> None:
+    manager = _manager(
+        tmp_path,
+        monkeypatch,
+        retrieval={
+            "top_k": 4,
+            "max_injection_chars": 1_000,
+            "injection_query": "profile preferences and prior decisions",
+            "injection_content_mode": "abstract",
+            "search_content_mode": "read",
+        },
+    )
+
+    manager.get_context("alice", agent_name="research")
+    manager.search("answer style", user_id="alice", agent_name="research")
+
+    assert manager._retriever.calls[0]["content_mode"] == "abstract"
+    assert manager._retriever.calls[1]["content_mode"] == "read"
 
 
 def test_context_without_thread_uses_existing_find_path(
@@ -325,6 +378,7 @@ def test_context_without_thread_uses_existing_find_path(
                 "viking://user/peers/research/memories",
             ],
             "search_mode": "find",
+            "content_mode": "auto",
         }
     ]
 

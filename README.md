@@ -1033,7 +1033,10 @@ official `langchain-openviking` package to capture completed turns into stable
 OpenViking Sessions and recall memory for prompt injection while leaving
 DeerMem as the default. The initial integration supports one DeerFlow user with
 one credential-bound OpenViking USER API key in `memory.mode: middleware` and
-does not inherit arbitrary HTTP headers from `ovcli.conf`.
+does not inherit arbitrary HTTP headers from `ovcli.conf`. Its tier-aware
+defaults keep directory summaries compact, read complete L2 matches for
+injection, and return full matched content from explicit searches; both paths
+remain configurable for latency-sensitive deployments.
 See [OpenViking memory backend](docs/OPENVIKING.md) for its configuration,
 behavior, and current boundaries.
 

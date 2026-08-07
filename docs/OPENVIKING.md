@@ -88,7 +88,8 @@ memory:
       top_k: 8
       score_threshold: 0.25
       max_injection_chars: 12000
-      content_mode: overview
+      injection_content_mode: auto
+      search_content_mode: read
       injection_query: >-
         user profile preferences important entities events ongoing goals
         constraints and prior decisions
@@ -100,6 +101,18 @@ Compose overlay uses the internal `http://openviking:1933` address.
 
 The dependency on `langchain-openviking==0.1.0` is declared by DeerFlow's
 harness package and is installed by the normal `uv sync` flow.
+
+`injection_content_mode: auto` follows OpenViking's context tiers: directory
+and non-leaf matches use their L0/L1 summaries, while L2 file matches are read
+before they are injected. `search_content_mode: read` makes an explicit
+`MemoryManager.search()` return the complete content of each matched item when
+available, with the official adapter falling back to its overview or abstract
+if the read fails. Both paths remain bounded by `max_injection_chars`.
+
+Existing configurations may keep `content_mode`; it applies the same mode to
+both automatic injection and explicit search. The split settings take
+precedence individually when present. Use `abstract` or `overview` when lower
+latency and token use matter more than detail fidelity.
 
 ## Start the services
 

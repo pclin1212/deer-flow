@@ -1029,7 +1029,12 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
   and file IO, and graceful shutdown drains active operations before closing
   the recorder-owned client. The recorder receives an explicit empty
   `extra_headers` mapping so `ovcli.conf` cannot add arbitrary transport
-  headers. Do not reintroduce a backend-local HTTP client,
+  headers. Recall delegates content materialization to the official retriever:
+  automatic injection defaults to tier-aware `auto` loading, while explicit
+  `search()` defaults to reading complete matched content. The legacy
+  `retrieval.content_mode` setting still applies one mode to both paths;
+  `injection_content_mode` and `search_content_mode` tune them independently.
+  Do not reintroduce a backend-local HTTP client,
   explicitly configured trusted identity headers, root-key data access, or
   imports of the OpenViking embedded runtime. Multi-user provisioning,
   query-aware refresh policy and new lifecycle scheduling are separate changes,

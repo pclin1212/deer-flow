@@ -38,7 +38,8 @@ class OpenVikingConfig:
     search_top_k: int
     score_threshold: float | None
     max_injection_chars: int
-    content_mode: Literal["auto", "abstract", "overview", "read"]
+    injection_content_mode: Literal["auto", "abstract", "overview", "read"]
+    search_content_mode: Literal["auto", "abstract", "overview", "read"]
     injection_query: str
     startup_policy: Literal["fail_fast", "warn"]
     read_failure_policy: Literal["fail_open", "raise"]
@@ -67,6 +68,16 @@ class OpenVikingConfig:
         if not api_key_env:
             raise ValueError("OpenViking api_key_env must not be empty")
 
+        legacy_content_mode = retrieval.pop("content_mode", None)
+        injection_content_mode = retrieval.pop(
+            "injection_content_mode",
+            legacy_content_mode if legacy_content_mode is not None else "auto",
+        )
+        search_content_mode = retrieval.pop(
+            "search_content_mode",
+            legacy_content_mode if legacy_content_mode is not None else "read",
+        )
+
         result = cls(
             base_url=str(cfg.pop("base_url", "http://127.0.0.1:1933")).rstrip("/"),
             storage_path=str(cfg.pop("storage_path", "")),
@@ -78,7 +89,8 @@ class OpenVikingConfig:
             search_top_k=int(retrieval.pop("top_k", 8)),
             score_threshold=_optional_float(retrieval.pop("score_threshold", None)),
             max_injection_chars=int(retrieval.pop("max_injection_chars", 12_000)),
-            content_mode=str(retrieval.pop("content_mode", "overview")).lower(),  # type: ignore[arg-type]
+            injection_content_mode=str(injection_content_mode).lower(),  # type: ignore[arg-type]
+            search_content_mode=str(search_content_mode).lower(),  # type: ignore[arg-type]
             injection_query=str(
                 retrieval.pop(
                     "injection_query",
@@ -129,8 +141,11 @@ class OpenVikingConfig:
             raise ValueError("OpenViking retrieval.score_threshold must be a finite value between 0 and 1")
         if not 256 <= self.max_injection_chars <= 100_000:
             raise ValueError("OpenViking retrieval.max_injection_chars must be between 256 and 100000")
-        if self.content_mode not in {"auto", "abstract", "overview", "read"}:
-            raise ValueError("OpenViking retrieval.content_mode must be auto, abstract, overview, or read")
+        valid_content_modes = {"auto", "abstract", "overview", "read"}
+        if self.injection_content_mode not in valid_content_modes:
+            raise ValueError("OpenViking retrieval.injection_content_mode must be auto, abstract, overview, or read")
+        if self.search_content_mode not in valid_content_modes:
+            raise ValueError("OpenViking retrieval.search_content_mode must be auto, abstract, overview, or read")
         if not self.injection_query:
             raise ValueError("OpenViking retrieval.injection_query must not be empty")
         if self.startup_policy not in {"fail_fast", "warn"}:

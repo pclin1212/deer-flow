@@ -114,6 +114,8 @@ memory:
       top_k: 8
       score_threshold: 0.25
       max_injection_chars: 12000
+      injection_content_mode: auto
+      search_content_mode: read
 ```
 
 Use `owner_user_id: default` when DeerFlow authentication is disabled. Put the
@@ -121,6 +123,12 @@ USER key in the server environment, not directly in `config.yaml`. Trusted-mode
 account headers, root-key memory access, and multi-user key provisioning are not
 part of this version. See `docs/OPENVIKING.md` for the full boundary and startup
 guide.
+
+The default tier-aware injection mode reads full L2 files while retaining
+compact L0/L1 summaries. Explicit searches default to full-content reads so a
+successful match carries the evidence needed to answer, rather than only its
+overview. The legacy `retrieval.content_mode` setting remains supported and
+sets both behaviors.
 
 ## Global vs per-agent memory
 

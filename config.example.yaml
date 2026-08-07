@@ -1719,7 +1719,11 @@ memory:
   #     top_k: 8
   #     score_threshold: 0.25
   #     max_injection_chars: 12000
-  #     content_mode: overview
+  #     # Tier-aware prompt injection: read L2 files, keep L0/L1 summaries.
+  #     injection_content_mode: auto
+  #     # Explicit search favors complete evidence for the returned hits.
+  #     search_content_mode: read
+  #     # Legacy compatibility: content_mode sets both values when present.
   #     injection_query: >-
   #       user profile preferences important entities events ongoing goals
   #       constraints and prior decisions
